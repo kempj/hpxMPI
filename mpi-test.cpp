@@ -6,6 +6,29 @@
 using std::cout;
 using std::endl;
 
+struct mpi_server: hpx::components::simple_component_base<mpi_server>
+{
+    void print_num(int i) {
+        cout << "printing " << i << endl;
+    }
+    HPX_DEFINE_COMPONENT_DIRECT_ACTION(mpi_server, print_num, print_num_action);
+};
+
+typedef hpx::components::simple_component<mpi_server> mpi_server_type;
+HPX_REGISTER_COMPONENT(mpi_server_type, mpi_server);
+
+typedef mpi_server::print_num_action print_num_action;
+HPX_REGISTER_ACTION(print_num_action);
+
+struct mpi_client: hpx::components::client_base<mpi_client, mpi_server>
+{
+    void print_num(int i) {
+        mpi_server::print_num_action act;
+        hpx::async(act, get_id(), i);
+    }
+
+};
+
 void print()
 {
     cout << "hello world" << endl;
