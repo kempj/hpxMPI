@@ -43,6 +43,8 @@ void print()
 
 int hpx_main(int argc, char **argv) 
 {
+    cout << "global id (of locality) = " << hpx::find_here() << endl;
+    cout << "Locality id = " << hpx::get_locality_id() << endl;
     mpi_client mpi;
     for(int i = 0; i < 5; i++) {
         //hpx::apply(print);
