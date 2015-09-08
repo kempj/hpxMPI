@@ -22,6 +22,13 @@ HPX_REGISTER_ACTION(print_num_action);
 
 struct mpi_client: hpx::components::client_base<mpi_client, mpi_server>
 {
+    typedef hpx::components::client_base<mpi_client, mpi_server> base_type;
+
+    mpi_client()
+      : base_type(hpx::new_<mpi_server>( hpx::find_here() ))
+    {}
+
+    // Create new component on locality 'where' and initialize the held data
     void print_num(int i) {
         mpi_server::print_num_action act;
         hpx::async(act, get_id(), i);
@@ -36,8 +43,10 @@ void print()
 
 int hpx_main(int argc, char **argv) 
 {
+    mpi_client mpi;
     for(int i = 0; i < 5; i++) {
-        hpx::apply(print);
+        //hpx::apply(print);
+        mpi.print_num(i);
     }
     return hpx::finalize();
 }
