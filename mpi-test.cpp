@@ -6,19 +6,21 @@
 using std::cout;
 using std::endl;
 
+char const* mpi_basename = "mpi_object";
+
 struct mpi_server: hpx::components::simple_component_base<mpi_server>
 {
-    void print_num(int i) {
-        cout << "printing " << i << endl;
+    void print_hello() {
+        cout << "hello from " << hpx::find_here() << endl;
     }
-    HPX_DEFINE_COMPONENT_DIRECT_ACTION(mpi_server, print_num, print_num_action);
+    HPX_DEFINE_COMPONENT_DIRECT_ACTION(mpi_server, print_hello, print_hello_action);
 };
 
 typedef hpx::components::simple_component<mpi_server> mpi_server_type;
 HPX_REGISTER_COMPONENT(mpi_server_type, mpi_server);
 
-typedef mpi_server::print_num_action print_num_action;
-HPX_REGISTER_ACTION(print_num_action);
+typedef mpi_server::print_hello_action print_hello_action;
+HPX_REGISTER_ACTION(print_hello_action);
 
 struct mpi_client: hpx::components::client_base<mpi_client, mpi_server>
 {
@@ -26,12 +28,15 @@ struct mpi_client: hpx::components::client_base<mpi_client, mpi_server>
 
     mpi_client()
       : base_type(hpx::new_<mpi_server>( hpx::find_here() ))
-    {}
+    {
+        hpx::register_with_basename(
+            mpi_basename, get_id(), hpx::get_locality_id());
+    }
 
-    // Create new component on locality 'where' and initialize the held data
-    void print_num(int i) {
-        mpi_server::print_num_action act;
-        hpx::async(act, get_id(), i);
+    void print_hello(int id) {
+        mpi_server::print_hello_action act;
+        auto future_id = hpx::find_from_basename(mpi_basename, id);
+        hpx::async(act, future_id.get());
     }
 
 };
@@ -43,12 +48,14 @@ void print()
 
 int hpx_main(int argc, char **argv) 
 {
-    cout << "global id (of locality) = " << hpx::find_here() << endl;
-    cout << "Locality id = " << hpx::get_locality_id() << endl;
+    //cout << "global id (of locality) = " << hpx::find_here() << endl;
+    //cout << "Locality id = " << hpx::get_locality_id() << endl;
+    int nodes = hpx::get_num_localities_sync();
     mpi_client mpi;
-    for(int i = 0; i < 5; i++) {
-        //hpx::apply(print);
-        mpi.print_num(i);
+    if(hpx::get_locality_id() == 0) {
+        for(int i = 0; i < nodes; i++) {
+            mpi.print_hello(i);
+        }
     }
     return hpx::finalize();
 }
